@@ -17,7 +17,7 @@ export class UrlInput {
     this.element.innerHTML = `
       <div class="url-input-box">
         <span class="url-input-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
           </svg>
@@ -26,24 +26,25 @@ export class UrlInput {
           id="url-input-field"
           class="url-input-field"
           type="text"
-          placeholder="Paste media link here (YouTube, TikTok, Twitter…)"
+          placeholder="Paste or drag media link (YouTube, TikTok, SoundCloud, X…)"
           autocomplete="off"
           spellcheck="false"
           inputmode="url"
         />
         <div class="url-input-actions">
           <button type="button" class="input-action-btn clear-btn" id="btn-clear" title="Clear input" hidden>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"/>
               <line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
-          <button type="button" class="input-action-btn paste-btn" id="btn-paste" title="Paste from clipboard">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <button type="button" class="input-action-btn paste-btn" id="btn-paste" title="Paste from clipboard (Ctrl+V)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
               <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
             </svg>
             <span>Paste</span>
+            <span class="kbd-hint">Ctrl+V</span>
           </button>
         </div>
       </div>
@@ -89,16 +90,16 @@ export class UrlInput {
         if (text && text.trim()) {
           this.setValue(text.trim());
           this.triggerResolveImmediately();
-          toast.show("Pasted link from clipboard", "info", 2000);
+          toast.show("Pasted link from clipboard", "info", 1800);
         } else {
-          toast.show("No text in clipboard", "warning", 2500);
+          toast.show("No text in clipboard", "warning", 2000);
         }
       } catch {
-        toast.show("Could not access clipboard", "error", 3000);
+        toast.show("Could not access clipboard", "error", 2500);
       }
     });
 
-    // Setup global window drag & drop
+    // Global drag & drop support
     window.addEventListener("dragover", (e) => {
       e.preventDefault();
       document.body.classList.add("is-dragging-url");
@@ -117,7 +118,7 @@ export class UrlInput {
       if (text && text.trim()) {
         this.setValue(text.trim());
         this.triggerResolveImmediately();
-        toast.show("Link dropped & recognized", "info", 2000);
+        toast.show("Link detected and loaded", "info", 1800);
       }
     });
   }
@@ -154,7 +155,7 @@ export class UrlInput {
     window.clearTimeout(this.debounceTimer);
     this.debounceTimer = window.setTimeout(() => {
       this.triggerResolveImmediately();
-    }, 550);
+    }, 500);
   }
 
   private triggerResolveImmediately() {

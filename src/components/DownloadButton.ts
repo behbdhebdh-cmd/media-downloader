@@ -27,7 +27,7 @@ export class DownloadButton {
         <div class="download-progress-fill" id="download-progress-bar"></div>
         <div class="download-btn-content">
           <span class="btn-icon" id="download-btn-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="7 10 12 15 17 10"/>
               <line x1="12" y1="15" x2="12" y2="3"/>
@@ -42,10 +42,10 @@ export class DownloadButton {
 
       <div class="download-success-actions" id="download-success-actions" hidden>
         <button type="button" class="success-open-btn" id="btn-success-open">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>
           </svg>
-          <span>Show in Folder</span>
+          <span>Show in Explorer</span>
         </button>
       </div>
     `;
@@ -73,7 +73,7 @@ export class DownloadButton {
     this.currentState = "idle";
     this.btnEl.disabled = false;
     this.btnEl.className = "download-action-btn state-idle";
-    this.barEl.style.width = "0%";
+    this.barEl.style.transform = "scaleX(0)";
     this.currentPercent = 0;
     this.subLabelEl.textContent = "";
     this.successActionsEl.hidden = true;
@@ -83,7 +83,7 @@ export class DownloadButton {
     this.labelEl.textContent = `Download ${typeLabel} (${qualityLabel})`;
 
     this.iconEl.innerHTML = `
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
         <polyline points="7 10 12 15 17 10"/>
         <line x1="12" y1="15" x2="12" y2="3"/>
@@ -95,8 +95,8 @@ export class DownloadButton {
     this.currentState = "resolving";
     this.btnEl.disabled = true;
     this.btnEl.className = "download-action-btn state-resolving";
-    this.barEl.style.width = "0%";
-    this.labelEl.textContent = "Checking link & formats…";
+    this.barEl.style.transform = "scaleX(0)";
+    this.labelEl.textContent = "Analyzing link & streams…";
     this.subLabelEl.textContent = "";
     this.successActionsEl.hidden = true;
 
@@ -113,16 +113,16 @@ export class DownloadButton {
 
     if (typeof percent === "number") {
       this.currentPercent = Math.max(0, Math.min(percent, 100));
-      this.barEl.style.width = `${this.currentPercent}%`;
+      this.barEl.style.transform = `scaleX(${this.currentPercent / 100})`;
     }
 
     if (phase === "ffmpeg") {
-      this.labelEl.textContent = "Downloading ffmpeg dependency…";
+      this.labelEl.textContent = "Fetching ffmpeg dependency…";
       this.subLabelEl.textContent = typeof percent === "number" ? `${Math.round(this.currentPercent)}%` : "";
     } else {
       const pctStr = typeof percent === "number" ? `${Math.round(this.currentPercent)}%` : "";
       this.labelEl.textContent = `Downloading ${pctStr ? `• ${pctStr}` : ""}`;
-      this.subLabelEl.textContent = message || "Please wait…";
+      this.subLabelEl.textContent = message || "Processing stream…";
     }
 
     this.iconEl.innerHTML = `
@@ -134,19 +134,19 @@ export class DownloadButton {
     this.currentState = "success";
     this.btnEl.disabled = false;
     this.btnEl.className = "download-action-btn state-success";
-    this.barEl.style.width = "100%";
-    this.labelEl.textContent = "Download Complete!";
-    this.subLabelEl.textContent = "File saved successfully";
+    this.barEl.style.transform = "scaleX(1)";
+    this.labelEl.textContent = "Download Complete";
+    this.subLabelEl.textContent = "Saved to folder";
 
     this.iconEl.innerHTML = `
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="20 6 9 17 4 12"/>
       </svg>
     `;
 
     this.successActionsEl.hidden = false;
 
-    // Reset after delay if no new interaction
+    // Reset after 4.5s of inactivity
     setTimeout(() => {
       if (this.currentState === "success") {
         this.setIdle(container, preset);
@@ -158,20 +158,20 @@ export class DownloadButton {
     this.currentState = "error";
     this.btnEl.disabled = false;
     this.btnEl.className = "download-action-btn state-error";
-    this.barEl.style.width = "0%";
+    this.barEl.style.transform = "scaleX(0)";
     this.labelEl.textContent = "Download Error";
-    this.subLabelEl.textContent = errorMsg || "Please try again";
+    this.subLabelEl.textContent = errorMsg || "Please retry";
     this.successActionsEl.hidden = true;
 
     this.iconEl.innerHTML = `
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"/>
         <line x1="12" y1="8" x2="12" y2="12"/>
         <line x1="12" y1="16" x2="12.01" y2="16"/>
       </svg>
     `;
 
-    // Reset after 3.5 seconds
+    // Reset after 3.5s
     setTimeout(() => {
       if (this.currentState === "error") {
         this.setIdle(container, preset);

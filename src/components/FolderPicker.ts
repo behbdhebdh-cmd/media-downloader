@@ -17,7 +17,7 @@ export class FolderPicker {
     this.element.innerHTML = `
       <div class="folder-info">
         <span class="folder-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>
           </svg>
         </span>
@@ -26,7 +26,7 @@ export class FolderPicker {
       </div>
       <button type="button" class="folder-change-btn" id="folder-change-btn">
         <span>Change</span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="9 18 15 12 9 6"/>
         </svg>
       </button>
@@ -51,7 +51,7 @@ export class FolderPicker {
       const info = await pickDownloadDir();
       if (info && info.name) {
         this.setFolderName(info.name);
-        toast.show(`Download folder set to: ${info.name}`, "info", 2500);
+        toast.show(`Destination set to: ${info.name}`, "info", 2000);
         if (this.onDirChangeCallback) {
           this.onDirChangeCallback(info);
         }

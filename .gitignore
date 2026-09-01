@@ -22,7 +22,7 @@ test-out/
 /yt-dlp.exe
 /qjs.exe
 
-# Editor directories and files
+# Editor and agent directories
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -32,3 +32,12 @@ test-out/
 *.njsproj
 *.sln
 *.sw?
+.agent
+.agents
+.claude
+.codex
+.cursor
+.gemini
+.impeccable
+.opencode
+.qoder

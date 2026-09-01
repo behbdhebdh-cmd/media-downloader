@@ -7,7 +7,7 @@ export type QualityOption = {
 };
 
 const MP4_OPTIONS: QualityOption[] = [
-  { value: "best", label: "Best Quality", badge: "Max" },
+  { value: "best", label: "Best Available", badge: "Max" },
   { value: "4k", label: "4K Ultra HD", badge: "2160p" },
   { value: "1080", label: "1080p Full HD", badge: "1080p" },
   { value: "720", label: "720p HD", badge: "720p" },
@@ -15,8 +15,8 @@ const MP4_OPTIONS: QualityOption[] = [
 ];
 
 const MP3_OPTIONS: QualityOption[] = [
-  { value: "320", label: "320 kbps (High Quality)", badge: "HQ" },
-  { value: "192", label: "192 kbps (Standard)", badge: "192k" },
+  { value: "320", label: "320 kbps High Quality", badge: "320k" },
+  { value: "192", label: "192 kbps Standard", badge: "192k" },
 ];
 
 export class QualitySelector {
@@ -39,14 +39,14 @@ export class QualitySelector {
       <button type="button" class="quality-trigger-btn" id="quality-trigger" aria-haspopup="listbox" aria-expanded="false">
         <div class="trigger-content">
           <span class="trigger-icon">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
             </svg>
           </span>
-          <span class="trigger-label" id="quality-label">Best Quality</span>
+          <span class="trigger-label" id="quality-label">Best Available (Max)</span>
         </div>
         <span class="chevron-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="6 9 12 15 18 9"/>
           </svg>
         </span>
@@ -126,11 +126,7 @@ export class QualitySelector {
     this.isOpen = false;
     this.element.classList.remove("is-open");
     this.triggerBtn.setAttribute("aria-expanded", "false");
-    setTimeout(() => {
-      if (!this.isOpen) {
-        this.menuEl.hidden = true;
-      }
-    }, 200);
+    this.menuEl.hidden = true;
   }
 
   private render() {
@@ -154,7 +150,7 @@ export class QualitySelector {
           isSelected
             ? `
           <span class="option-check">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12"/>
             </svg>
           </span>

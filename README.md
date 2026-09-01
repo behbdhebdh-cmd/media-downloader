@@ -3,25 +3,25 @@
 A modern, minimalist, and high-performance desktop media downloader for Windows built with **Tauri 2**, **TypeScript**, and **Rust**. Powered by `yt-dlp` and `ffmpeg`.
 
 <div align="center">
-  <img src="assets/Showcasemedia.png" alt="MediaDownloader Interface" width="600" />
+  <img src="assets/showcase-main.png" alt="MediaDownloader Interface" width="600" />
 </div>
 
-<div align="center" style="display: flex; gap: 10px; justify-content: center;">
-  <img src="assets/showcase23.png" alt="Download Progress & Format Selection" width="290" />
-  <img src="assets/medien.png" alt="Media Preview & Metadata" width="290" />
+<div align="center" style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
+  <img src="assets/showcase-preview.png" alt="Media Preview & Metadata Inspection" width="295" />
+  <img src="assets/showcase-download.png" alt="Quality Selector & Format Controls" width="295" />
 </div>
 
 ---
 
 ## ✨ Features
 
-- **Ultra-Minimal Dark Glass UI**: Modern dark glassmorphism design with fluid 60fps spring animations.
-- **Animated Startup Screen**: Elegant brand intro with ambient glow and background engine warmup.
-- **Rich Media Preview**: Automatic metadata extraction displaying video thumbnails, duration badges, platform pills (YouTube, TikTok, Instagram, Twitter/X, SoundCloud, etc.), and title.
-- **Smart Link Input**: One-click clipboard paste button, instant drag-and-drop link detection, and keyboard shortcuts.
-- **Sliding Format Switcher**: Smooth segmented control for **Video (MP4)** and **Audio (MP3)**.
-- **Custom Quality Selector**: Choose between Best Quality (Max), 4K Ultra HD, 1080p Full HD, 720p HD, and 320 kbps High Quality audio.
-- **Morphing Download & Progress Bar**: Glowing real-time progress bar with percentage counter, phase details, and success state.
+- **Precision High-Craft Desktop UI**: High-density slate/graphite aesthetic with 1px hairline borders, high contrast, and snappy compositor-accelerated micro-interactions.
+- **Fast Startup & Status Engine**: Instant engine warmup checking `yt-dlp` and `ffmpeg` with live status indicator.
+- **Rich Media Inspector**: Automatic metadata extraction displaying video thumbnails, duration badges with tabular figures, platform pills (YouTube, TikTok, Instagram, Twitter/X, SoundCloud, etc.), and clean stream summaries.
+- **Smart Command Bar Input**: One-click clipboard paste button (`Ctrl+V`), instant drag-and-drop link detection, and clear shortcut.
+- **Sliding Format Switcher**: Tactile segmented control for **Video (MP4)** and **Audio (MP3)**.
+- **Custom Quality Selector**: Choose between Best Available (Max), 4K Ultra HD, 1080p Full HD, 720p HD, and 320 kbps High Quality audio.
+- **Morphing Download & Progress Bar**: Real-time progress bar with live percentage, phase details (Extracting $\rightarrow$ Downloading $\rightarrow$ Merging), and completion state.
 - **Windows System Tray Integration**: Minimizes to the Windows Taskbar Notification Area on close (`✕`). Left-click restores the window, right-click opens the context menu (`Open MediaDownloader` / `Quit`).
 - **Explorer Integration**: Quick-access button in the header and on completion to open the destination folder directly in Windows File Explorer.
 

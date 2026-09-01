@@ -20,15 +20,21 @@ export class MediaPreview {
           <div class="skeleton-shimmer"></div>
         </div>
         <div class="media-info-box">
-          <div class="media-platform-pill" style="--pill-color: ${platform.color}">
-            <span class="platform-dot"></span>
-            <span>${platform.name}</span>
+          <div class="media-meta-row">
+            <div class="media-platform-pill" style="--pill-color: ${platform.color}">
+              <span class="platform-dot"></span>
+              <span>${platform.name}</span>
+            </div>
           </div>
-          <div class="skeleton-line skeleton-title skeleton-shimmer"></div>
-          <div class="skeleton-line skeleton-sub skeleton-shimmer"></div>
+          <div class="skeleton-line skeleton-title">
+            <div class="skeleton-shimmer"></div>
+          </div>
+          <div class="skeleton-line skeleton-sub">
+            <div class="skeleton-shimmer"></div>
+          </div>
           <div class="media-resolving-hint">
             <span class="resolving-spinner"></span>
-            <span>Analyzing link & formats…</span>
+            <span>Inspecting metadata & available streams…</span>
           </div>
         </div>
       </div>
@@ -43,7 +49,6 @@ export class MediaPreview {
     const duration = formatDuration(data.duration_sec);
 
     let thumbUrl = data.thumbnail?.trim() || "";
-    // Clean up webp/jpg or ensure https protocol
     if (thumbUrl.startsWith("//")) {
       thumbUrl = "https:" + thumbUrl;
     }
@@ -61,14 +66,14 @@ export class MediaPreview {
           onerror="if (this.src.includes('maxresdefault.jpg')) { this.src = this.src.replace('maxresdefault.jpg', 'hqdefault.jpg'); } else { this.parentElement.classList.add('thumb-failed'); }"
         />
         <div class="media-thumb-fallback">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="5 3 19 12 5 21 5 3"/>
           </svg>
         </div>
       `
       : `
         <div class="media-thumb-fallback">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="5 3 19 12 5 21 5 3"/>
           </svg>
         </div>
@@ -90,10 +95,10 @@ export class MediaPreview {
           </div>
           <h2 class="media-title" title="${escapeHtml(data.title)}">${escapeHtml(data.title)}</h2>
           <div class="media-status-tag">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M20 6L9 17l-5-5"/>
             </svg>
-            <span>Ready to download</span>
+            <span>Ready for extraction</span>
           </div>
         </div>
       </div>
@@ -107,7 +112,7 @@ export class MediaPreview {
         this.element.hidden = true;
         this.element.innerHTML = "";
       }
-    }, 250);
+    }, 160);
   }
 }
 
