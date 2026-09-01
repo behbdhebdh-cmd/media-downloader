@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="/src/styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediaDownloader</title>
+  </head>
+  <body>
+    <main class="stage">
+      <div class="panel">
+        <input
+          id="url"
+          type="text"
+          placeholder="Paste a link"
+          autocomplete="off"
+          spellcheck="false"
+          inputmode="url"
+        />
+        <p id="error" class="error" hidden></p>
+        <button type="button" id="folder-btn" class="folder-btn">Folder: Downloads</button>
+        <div id="controls" class="controls" hidden>
+          <div class="pills" role="group" aria-label="Format">
+            <button type="button" id="pill-mp4" class="pill is-active">MP4</button>
+            <button type="button" id="pill-mp3" class="pill">MP3</button>
+          </div>
+          <div class="quality">
+            <button type="button" id="quality-btn" class="quality-btn" aria-haspopup="listbox">
+              Best
+            </button>
+            <ul id="quality-menu" class="quality-menu" hidden role="listbox"></ul>
+          </div>
+          <button type="button" id="download" class="download">
+            <span id="bar" class="download-bar"></span>
+            <span id="download-label" class="download-label">Download</span>
+          </button>
+        </div>
+      </div>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
