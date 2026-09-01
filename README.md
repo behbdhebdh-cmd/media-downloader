@@ -10,6 +10,8 @@ Pick a save folder, paste a link, choose MP4 or MP3, then Download.
 
 The first MP4 or MP3 may download ffmpeg in the background. After that, merges and MP3 conversion work offline.
 
+MP4 downloads prefer H.264 video, so files play on stock Windows (Media Player / Photos) without the paid HEVC codec extension. If a source only offers HEVC/AV1, the app transcodes it to H.264 automatically.
+
 ## Build from source
 
 ```text

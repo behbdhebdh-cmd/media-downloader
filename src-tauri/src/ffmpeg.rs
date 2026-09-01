@@ -1,12 +1,12 @@
 use std::fs::File;
 use std::io::copy;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
 use futures_util::StreamExt;
 use serde::Serialize;
 use tauri::AppHandle;
-use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command as TokioCommand;
 
 use crate::error::AppError;
@@ -180,6 +180,156 @@ fn extract_binaries(zip_path: &Path, dest: &Path) -> Result<(), AppError> {
         ));
     }
     Ok(())
+}
+
+/// Probe the first video stream's codec name (e.g. "h264", "hevc", "av1").
+/// Returns Ok(None) when ffprobe is missing or the probe fails — callers must
+/// treat that as "cannot verify" and skip any codec-dependent postprocess.
+pub async fn video_codec(app: &AppHandle, media: &Path) -> Result<Option<String>, AppError> {
+    let ffprobe = paths::ffmpeg_dir(app)?.join(paths::sidecar_filename("ffprobe"));
+    if !ffprobe.is_file() {
+        return Ok(None);
+    }
+
+    let media_arg = media.to_string_lossy().into_owned();
+    let mut cmd = TokioCommand::new(&ffprobe);
+    cmd.args([
+        "-v",
+        "error",
+        "-select_streams",
+        "v:0",
+        "-show_entries",
+        "stream=codec_name",
+        "-of",
+        "csv=p=0",
+        &media_arg,
+    ])
+    .stdout(Stdio::piped())
+    .stderr(Stdio::null())
+    .stdin(Stdio::null())
+    .kill_on_drop(true);
+    #[cfg(windows)]
+    {
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+
+    let mut child = match cmd.spawn() {
+        Ok(child) => child,
+        Err(_) => return Ok(None),
+    };
+    let mut stdout = String::new();
+    if let Some(pipe) = child.stdout.take() {
+        let mut reader = BufReader::new(pipe);
+        let _ = reader.read_to_string(&mut stdout).await;
+    }
+    let _ = child.wait().await;
+    let name = stdout.trim().to_string();
+    Ok(if name.is_empty() { None } else { Some(name) })
+}
+
+/// Transcode a video in place to H.264/AAC mp4 (max-compatibility profile).
+/// Reports progress via the "postprocess" phase. On any failure the original
+/// file is left untouched and an Err is returned — callers decide whether to
+/// keep the original or fail the download.
+pub async fn transcode_to_h264(
+    app: &AppHandle,
+    src: &Path,
+) -> Result<PathBuf, AppError> {
+    let dir = paths::ffmpeg_dir(app)?;
+    let ffmpeg = dir.join(paths::sidecar_filename("ffmpeg"));
+    if !ffmpeg.is_file() {
+        return Err(AppError::msg("ffmpeg is missing."));
+    }
+
+    let tmp = src.with_extension("h264-transcode.mp4");
+    let src_arg = src.to_string_lossy().into_owned();
+    let tmp_arg = tmp.to_string_lossy().into_owned();
+
+    progress::emit(app, "postprocess", Some(0.0), "Making Windows-compatible (H.264) …");
+
+    let mut cmd = TokioCommand::new(&ffmpeg);
+    cmd.args([
+        "-y",
+        "-i",
+        &src_arg,
+        "-c:v",
+        "libx264",
+        "-preset",
+        "veryfast",
+        "-crf",
+        "20",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "160k",
+        "-movflags",
+        "+faststart",
+        "-nostdin",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-progress",
+        "pipe:1",
+        "-nostats",
+        &tmp_arg,
+    ])
+    .stdout(Stdio::piped())
+    .stderr(Stdio::null())
+    .stdin(Stdio::null())
+    .kill_on_drop(true);
+    #[cfg(windows)]
+    {
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+
+    let mut child = cmd
+        .spawn()
+        .map_err(|_| AppError::msg("Could not start ffmpeg transcode."))?;
+
+    // Pump ffmpeg's -progress output (out_time_ms=...) into a rough percent.
+    if let Some(pipe) = child.stdout.take() {
+        let mut reader = BufReader::new(pipe);
+        let mut line = String::new();
+        loop {
+            line.clear();
+            match reader.read_line(&mut line).await {
+                Ok(0) | Err(_) => break,
+                Ok(_) => {
+                    if let Some(rest) = line.strip_prefix("out_time_ms=") {
+                        // out_time_ms is actually microseconds despite the name.
+                        if let Ok(us) = rest.trim().parse::<f64>() {
+                            let secs = us / 1_000_000.0;
+                            // No reliable duration here; use a slow-creep curve
+                            // capped at 95% so the bar never lies "done" early.
+                            let pct = (1.0 - (-secs / 20.0).exp()) * 95.0;
+                            progress::emit(
+                                app,
+                                "postprocess",
+                                Some(pct as f32),
+                                "Making Windows-compatible (H.264) …",
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let status = child
+        .wait()
+        .await
+        .map_err(|_| AppError::msg("Transcode interrupted."))?;
+    if !status.success() || !tmp.is_file() {
+        let _ = std::fs::remove_file(&tmp);
+        return Err(AppError::msg("Transcode failed."));
+    }
+
+    progress::emit(app, "postprocess", Some(100.0), "Windows-compatible (H.264) ✓");
+    Ok(tmp)
 }
 
 pub async fn file_has_audio(app: &AppHandle, media: &Path) -> Result<bool, AppError> {

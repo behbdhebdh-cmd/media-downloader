@@ -192,11 +192,55 @@ pub async fn download(
         return Err(error::from_ytdlp(&output.stderr, &output.stdout));
     }
 
-    let path = finalize_download(&output.stdout, &dest, &downloads, ext)?;
+    let mut path = finalize_download(&output.stdout, &dest, &downloads, ext)?;
     if container == Container::Mp4 && !ffmpeg::file_has_audio(app, &path).await? {
         let _ = std::fs::remove_file(&path);
         return Err(AppError::msg("The file has no audio."));
     }
+
+    // Windows-compatibility guard: if the mp4 is not H.264 (HEVC/AV1 would
+    // require the paid Microsoft codec extension), transcode it in place.
+    // Best-effort — if the probe or transcode fails, keep the original file.
+    if container == Container::Mp4 {
+        if let Ok(Some(codec)) = ffmpeg::video_codec(app, &path).await {
+            let is_h264 = codec == "h264";
+            if !is_h264 && ffmpeg::present(app) {
+                match ffmpeg::transcode_to_h264(app, &path).await {
+                    Ok(tmp) => {
+                        let final_path = paths::unique_output(
+                            &downloads,
+                            &path.file_stem()
+                                .map(|s| s.to_string_lossy().into_owned())
+                                .unwrap_or_else(|| "download".into()),
+                            "mp4",
+                        );
+                        match std::fs::rename(&tmp, &final_path) {
+                            Ok(()) => {
+                                let _ = std::fs::remove_file(&path);
+                                path = final_path;
+                            }
+                            Err(_) => {
+                                // rename can fail across volumes; fall back to copy
+                                if std::fs::copy(&tmp, &final_path).is_ok() {
+                                    let _ = std::fs::remove_file(&tmp);
+                                    let _ = std::fs::remove_file(&path);
+                                    path = final_path;
+                                } else {
+                                    let _ = std::fs::remove_file(&tmp);
+                                    // keep original `path` (non-H.264 but playable
+                                    // with the right codec installed)
+                                }
+                            }
+                        }
+                    }
+                    Err(_) => {
+                        // Transcode failed — keep the original file as-is.
+                    }
+                }
+            }
+        }
+    }
+
     let bytes = std::fs::metadata(&path).ok().map(|m| m.len());
     progress::emit(app, "download", Some(100.0), "100 %");
     Ok(DownloadResult {
@@ -209,6 +253,7 @@ fn base_args(qjs: &Path, ffmpeg_dir: Option<&Path>) -> Vec<String> {
     let mut args = vec![
         "--ignore-config".into(),
         "--no-playlist".into(),
+        "--no-warnings".into(),
         "--no-js-runtimes".into(),
         "--js-runtimes".into(),
         format!("quickjs:{}", qjs.display()),

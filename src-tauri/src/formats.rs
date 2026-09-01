@@ -49,23 +49,28 @@ fn mp4_args(selector: &str) -> Vec<String> {
     ]
 }
 
+/// Prefer H.264 (avc1/avc3) video: stock Windows, macOS, phones and editors
+/// decode it natively. HEVC/AV1 in an mp4 container would require the paid
+/// Microsoft codec extension on Windows, so we only fall back to it when a
+/// source genuinely has no H.264 format (the final `b…` fallback preserves
+/// today's behavior in that case).
+fn mp4_args_h264(height: Option<u32>) -> Vec<String> {
+    let cap = height.map(|h| format!("[height<={h}]")).unwrap_or_default();
+    // TikTok frequently exposes a single progressive mp4 format. Keep that
+    // as an explicit fallback before the generic best-format fallback so the
+    // extractor does not reject otherwise valid TikTok links.
+    mp4_args(&format!(
+        "bv*{cap}[ext=mp4][vcodec^=avc]+ba[ext=m4a]/b{cap}[ext=mp4]/bv*{cap}[vcodec^=avc]+ba/b{cap}[acodec!=none]/b{cap}"
+    ))
+}
+
 pub fn download_args(container: Container, preset: Preset) -> Result<Vec<String>, AppError> {
     match (container, preset) {
-        (Container::Mp4, Preset::Best) => Ok(mp4_args(
-            "bv*[ext=mp4]+ba[ext=m4a]/bv*+ba/b[acodec!=none]",
-        )),
-        (Container::Mp4, Preset::FourK) => Ok(mp4_args(
-            "bv*[height<=2160][ext=mp4]+ba[ext=m4a]/bv*[height<=2160]+ba/b[height<=2160][acodec!=none]",
-        )),
-        (Container::Mp4, Preset::P1080) => Ok(mp4_args(
-            "bv*[height<=1080][ext=mp4]+ba[ext=m4a]/bv*[height<=1080]+ba/b[height<=1080][acodec!=none]",
-        )),
-        (Container::Mp4, Preset::P720) => Ok(mp4_args(
-            "bv*[height<=720][ext=mp4]+ba[ext=m4a]/bv*[height<=720]+ba/b[height<=720][acodec!=none]",
-        )),
-        (Container::Mp4, Preset::P360) => Ok(mp4_args(
-            "bv*[height<=360][ext=mp4]+ba[ext=m4a]/bv*[height<=360]+ba/b[height<=360][acodec!=none]",
-        )),
+        (Container::Mp4, Preset::Best) => Ok(mp4_args_h264(None)),
+        (Container::Mp4, Preset::FourK) => Ok(mp4_args_h264(Some(2160))),
+        (Container::Mp4, Preset::P1080) => Ok(mp4_args_h264(Some(1080))),
+        (Container::Mp4, Preset::P720) => Ok(mp4_args_h264(Some(720))),
+        (Container::Mp4, Preset::P360) => Ok(mp4_args_h264(Some(360))),
         (Container::Mp3, Preset::A320) => Ok(vec![
             "-f".into(),
             "ba/b".into(),

@@ -50,7 +50,7 @@ pub fn from_ytdlp(stderr: &str, stdout: &str) -> AppError {
         || blob.contains("unable to extract")
         || blob.contains("is not a valid url")
     {
-        return AppError::msg("This link is not supported.");
+        return AppError::msg("This link is not supported. Make sure the TikTok post is public and paste the full link.");
     }
     if blob.contains("http error 429") || blob.contains("too many requests") {
         return AppError::msg("Too many requests. Try again later.");
