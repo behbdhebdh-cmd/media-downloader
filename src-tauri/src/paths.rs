@@ -50,6 +50,28 @@ pub fn download_dir_info(app: &AppHandle) -> Result<DownloadDirInfo, AppError> {
     })
 }
 
+pub fn open_download_dir(app: &AppHandle) -> Result<(), AppError> {
+    let dir = download_dir(app)?;
+    if !dir.exists() {
+        let _ = std::fs::create_dir_all(&dir);
+    }
+    if dir.is_dir() {
+        #[cfg(target_os = "windows")]
+        {
+            let _ = std::process::Command::new("explorer.exe")
+                .arg(&dir)
+                .spawn();
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            let _ = std::process::Command::new("open")
+                .arg(&dir)
+                .spawn();
+        }
+    }
+    Ok(())
+}
+
 fn persist_download_dir(app: &AppHandle, path: &Path) -> Result<(), AppError> {
     let data = app_data(app)?;
     std::fs::create_dir_all(&data)

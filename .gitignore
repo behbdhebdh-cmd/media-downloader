@@ -17,6 +17,10 @@ src-tauri/target
 src-tauri/binaries/*.exe
 test-out/
 .tmp/
+.freebuff/
+/MediaDownloader*.exe
+/yt-dlp.exe
+/qjs.exe
 
 # Editor directories and files
 .vscode/*

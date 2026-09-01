@@ -3,287 +3,208 @@ import {
   downloadDirInfo,
   errorMessage,
   onProgress,
-  pickDownloadDir,
+  openDownloadDir,
   resolveLink,
   type Container,
   type Preset,
+  type ResolveResult,
 } from "./api";
+import { DownloadButton } from "./components/DownloadButton";
+import { FolderPicker } from "./components/FolderPicker";
+import { FormatSelector } from "./components/FormatSelector";
+import { Header } from "./components/Header";
+import { MediaPreview } from "./components/MediaPreview";
+import { QualitySelector } from "./components/QualitySelector";
+import { StartupSplash } from "./components/StartupSplash";
+import { toast } from "./components/Toast";
+import { UrlInput } from "./components/UrlInput";
 
-const MP4_OPTIONS: { value: Preset; label: string }[] = [
-  { value: "best", label: "Best" },
-  { value: "4k", label: "4K" },
-  { value: "1080", label: "1080p" },
-  { value: "720", label: "720p" },
-  { value: "360", label: "360p" },
-];
+class App {
+  private container: Container = "mp4";
+  private preset: Preset = "best";
+  private resolvedUrl: string | null = null;
+  private resolveGeneration = 0;
+  private activeDownloadJob = 0;
+  private isBusy = false;
 
-const MP3_OPTIONS: { value: Preset; label: string }[] = [
-  { value: "320", label: "320" },
-  { value: "192", label: "192" },
-];
+  private header: Header;
+  private urlInput: UrlInput;
+  private mediaPreview: MediaPreview;
+  private formatSelector: FormatSelector;
+  private qualitySelector: QualitySelector;
+  private folderPicker: FolderPicker;
+  private downloadButton: DownloadButton;
+  private splash: StartupSplash;
 
-const urlInput = document.querySelector("#url") as HTMLInputElement;
-const errorEl = document.querySelector("#error") as HTMLParagraphElement;
-const folderBtn = document.querySelector("#folder-btn") as HTMLButtonElement;
-const controls = document.querySelector("#controls") as HTMLElement;
-const pillMp4 = document.querySelector("#pill-mp4") as HTMLButtonElement;
-const pillMp3 = document.querySelector("#pill-mp3") as HTMLButtonElement;
-const qualityBtn = document.querySelector("#quality-btn") as HTMLButtonElement;
-const qualityMenu = document.querySelector("#quality-menu") as HTMLUListElement;
-const downloadBtn = document.querySelector("#download") as HTMLButtonElement;
-const downloadLabel = document.querySelector("#download-label") as HTMLElement;
-const bar = document.querySelector("#bar") as HTMLElement;
+  constructor() {
+    this.splash = new StartupSplash();
 
-let container: Container = "mp4";
-let preset: Preset = "best";
-let resolvedUrl: string | null = null;
-let generation = 0;
-let downloadJob = 0;
-let debounceTimer: number | undefined;
-let busy = false;
+    // Header folder button opens destination in Explorer
+    this.header = new Header(() => this.handleOpenFolder());
+    this.urlInput = new UrlInput((url: string) => this.handleUrlChange(url));
+    this.mediaPreview = new MediaPreview();
 
-function currentOptions() {
-  return container === "mp4" ? MP4_OPTIONS : MP3_OPTIONS;
-}
-
-function setFolderName(name: string) {
-  folderBtn.textContent = `Folder: ${name || "Downloads"}`;
-}
-
-function setError(message: string, status = false) {
-  errorEl.classList.toggle("is-status", status && Boolean(message));
-  if (!message) {
-    errorEl.hidden = true;
-    errorEl.textContent = "";
-    return;
-  }
-  errorEl.hidden = false;
-  errorEl.textContent = message;
-}
-
-function setControlsVisible(visible: boolean) {
-  controls.hidden = !visible;
-  if (!visible) {
-    qualityMenu.hidden = true;
-  }
-}
-
-function renderQuality() {
-  const options = currentOptions();
-  if (!options.some((item) => item.value === preset)) {
-    preset = options[0].value;
-  }
-  qualityBtn.textContent = options.find((item) => item.value === preset)?.label ?? options[0].label;
-  qualityMenu.innerHTML = "";
-  for (const option of options) {
-    const item = document.createElement("li");
-    item.role = "option";
-    item.textContent = option.label;
-    item.dataset.value = option.value;
-    item.setAttribute("aria-selected", option.value === preset ? "true" : "false");
-    item.addEventListener("click", () => {
-      preset = option.value;
-      qualityMenu.hidden = true;
-      renderQuality();
+    this.formatSelector = new FormatSelector((container) => {
+      this.container = container;
+      this.qualitySelector.setContainer(container);
+      this.preset = this.qualitySelector.getPreset();
+      this.downloadButton.setIdle(this.container, this.preset);
     });
-    qualityMenu.append(item);
-  }
-}
 
-function setPills() {
-  pillMp4.classList.toggle("is-active", container === "mp4");
-  pillMp3.classList.toggle("is-active", container === "mp3");
-  renderQuality();
-}
+    this.qualitySelector = new QualitySelector((preset) => {
+      this.preset = preset;
+      this.downloadButton.setIdle(this.container, this.preset);
+    });
 
-function setBusy(next: boolean) {
-  busy = next;
-  downloadBtn.disabled = next;
-  urlInput.disabled = next;
-  pillMp4.disabled = next;
-  pillMp3.disabled = next;
-  qualityBtn.disabled = next;
-  folderBtn.disabled = next;
-  if (next) {
-    qualityMenu.hidden = true;
-  }
-}
+    this.folderPicker = new FolderPicker();
 
-function resetButton() {
-  downloadLabel.textContent = "Download";
-  bar.style.width = "0%";
-}
+    this.downloadButton = new DownloadButton(
+      () => this.startDownload(),
+      () => this.handleOpenFolder()
+    );
 
-async function resolveNow() {
-  if (busy) {
-    return;
+    this.mount();
+    this.init();
   }
-  const my = ++generation;
-  const url = urlInput.value.trim();
-  if (!url) {
-    resolvedUrl = null;
-    setControlsVisible(false);
-    setError("");
-    return;
+
+  private mount() {
+    const root = document.getElementById("app");
+    if (!root) return;
+
+    root.innerHTML = "";
+    root.appendChild(this.header.element);
+
+    const mainEl = document.createElement("main");
+    mainEl.className = "app-main";
+
+    mainEl.appendChild(this.urlInput.element);
+    mainEl.appendChild(this.mediaPreview.element);
+
+    const controlsRow = document.createElement("div");
+    controlsRow.className = "controls-row";
+    controlsRow.appendChild(this.formatSelector.element);
+    controlsRow.appendChild(this.qualitySelector.element);
+    mainEl.appendChild(controlsRow);
+
+    mainEl.appendChild(this.folderPicker.element);
+    mainEl.appendChild(this.downloadButton.element);
+
+    root.appendChild(mainEl);
   }
-  setError("Checking link …", true);
-  try {
-    await resolveLink(url);
-    if (my !== generation) {
-      return;
+
+  private async init() {
+    this.downloadButton.setIdle(this.container, this.preset);
+
+    // Subscribe to download progress events
+    void onProgress((payload) => {
+      if (this.activeDownloadJob === 0) return;
+      this.downloadButton.setProgress(payload.phase, payload.percent, payload.message);
+    });
+
+    // Run warmup
+    const status = await this.splash.runWarmup();
+    if (status) {
+      this.header.setEngineStatus("online", "Engine Ready");
     }
-    resolvedUrl = url;
-    setError("");
-    setControlsVisible(true);
-    setPills();
-  } catch (err) {
-    if (my !== generation) {
-      return;
-    }
-    resolvedUrl = null;
-    setControlsVisible(false);
-    setError(errorMessage(err));
-  }
-}
 
-function scheduleResolve() {
-  window.clearTimeout(debounceTimer);
-  debounceTimer = window.setTimeout(() => {
-    void resolveNow();
-  }, 600);
-}
-
-function applyProgress(phase: string, percent: number | null | undefined, message: string) {
-  if (phase === "ffmpeg") {
-    downloadLabel.textContent = "Downloading ffmpeg …";
-    if (typeof percent === "number") {
-      bar.style.width = `${Math.max(0, Math.min(percent, 100))}%`;
-    }
-    return;
-  }
-  if (message) {
-    downloadLabel.textContent = message;
-  } else if (typeof percent === "number") {
-    downloadLabel.textContent = `${Math.round(percent)} %`;
-  } else {
-    downloadLabel.textContent = "Downloading …";
-  }
-  if (typeof percent === "number") {
-    bar.style.width = `${Math.max(0, Math.min(percent, 100))}%`;
-  }
-}
-
-async function startDownload() {
-  if (busy || !resolvedUrl) {
-    return;
-  }
-  const job = ++downloadJob;
-  setBusy(true);
-  setError("");
-  applyProgress("download", 0, "Downloading …");
-  try {
-    await download(resolvedUrl, container, preset);
-    if (job !== downloadJob) {
-      return;
-    }
-    downloadLabel.textContent = "Done";
-    bar.style.width = "100%";
-    window.setTimeout(() => {
-      if (job === downloadJob) {
-        downloadJob = 0;
-        resetButton();
+    // Load initial download directory name
+    try {
+      const info = await downloadDirInfo();
+      if (info && info.name) {
+        this.folderPicker.setFolderName(info.name);
       }
-    }, 1200);
-  } catch (err) {
-    if (job !== downloadJob) {
+    } catch {
+      this.folderPicker.setFolderName("Downloads");
+    }
+  }
+
+  private async handleUrlChange(url: string) {
+    if (this.isBusy) return;
+
+    const trimmed = url.trim();
+    const generation = ++this.resolveGeneration;
+
+    if (!trimmed) {
+      this.resolvedUrl = null;
+      this.mediaPreview.hide();
+      this.downloadButton.setIdle(this.container, this.preset);
       return;
     }
-    downloadJob = 0;
-    setError(errorMessage(err));
-    resetButton();
-  } finally {
-    if (job === downloadJob || downloadJob === 0) {
-      setBusy(false);
+
+    this.mediaPreview.showSkeleton(trimmed);
+    this.downloadButton.setResolving();
+
+    try {
+      const result: ResolveResult = await resolveLink(trimmed);
+      if (generation !== this.resolveGeneration) return;
+
+      this.resolvedUrl = trimmed;
+      this.mediaPreview.showData(result, trimmed);
+      this.downloadButton.setIdle(this.container, this.preset);
+    } catch (err) {
+      if (generation !== this.resolveGeneration) return;
+
+      this.resolvedUrl = null;
+      this.mediaPreview.hide();
+      const msg = errorMessage(err);
+      toast.show(msg, "error", 4000);
+      this.downloadButton.setIdle(this.container, this.preset);
     }
   }
+
+  private async startDownload() {
+    if (this.isBusy || !this.resolvedUrl) {
+      if (!this.resolvedUrl) {
+        toast.show("Please paste a valid media link first", "warning", 3000);
+      }
+      return;
+    }
+
+    const job = ++this.activeDownloadJob;
+    this.setBusy(true);
+    this.downloadButton.setProgress("download", 0, "Starting download…");
+
+    try {
+      await download(this.resolvedUrl, this.container, this.preset);
+      if (job !== this.activeDownloadJob) return;
+
+      this.downloadButton.setSuccess(this.container, this.preset);
+      toast.show("Download completed successfully!", "success", 4000);
+    } catch (err) {
+      if (job !== this.activeDownloadJob) return;
+
+      const msg = errorMessage(err);
+      this.downloadButton.setError(this.container, this.preset, msg);
+      toast.show(msg, "error", 5000);
+    } finally {
+      if (job === this.activeDownloadJob) {
+        this.activeDownloadJob = 0;
+      }
+      this.setBusy(false);
+    }
+  }
+
+  private async handleOpenFolder() {
+    try {
+      await openDownloadDir();
+    } catch (err) {
+      console.warn("Could not open download directory:", err);
+      toast.show("Could not open folder in Explorer", "error", 3000);
+    }
+  }
+
+  private setBusy(busy: boolean) {
+    this.isBusy = busy;
+    this.urlInput.setDisabled(busy);
+    this.formatSelector.setDisabled(busy);
+    this.qualitySelector.setDisabled(busy);
+    this.folderPicker.setDisabled(busy);
+  }
 }
 
-async function chooseFolder() {
-  if (busy) {
-    return;
-  }
-  try {
-    const info = await pickDownloadDir();
-    setFolderName(info.name);
-  } catch (err) {
-    setError(errorMessage(err));
-  }
+// Bootstrap app on DOM ready
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => new App());
+} else {
+  new App();
 }
-
-pillMp4.addEventListener("click", () => {
-  container = "mp4";
-  preset = "best";
-  setPills();
-});
-
-pillMp3.addEventListener("click", () => {
-  container = "mp3";
-  preset = "320";
-  setPills();
-});
-
-qualityBtn.addEventListener("click", () => {
-  qualityMenu.hidden = !qualityMenu.hidden;
-});
-
-folderBtn.addEventListener("click", () => {
-  void chooseFolder();
-});
-
-document.addEventListener("click", (event) => {
-  const target = event.target as Node;
-  if (!qualityBtn.contains(target) && !qualityMenu.contains(target)) {
-    qualityMenu.hidden = true;
-  }
-});
-
-urlInput.addEventListener("input", () => {
-  if (!urlInput.value.trim()) {
-    generation += 1;
-    resolvedUrl = null;
-    setControlsVisible(false);
-    setError("");
-  }
-  scheduleResolve();
-});
-
-urlInput.addEventListener("paste", () => {
-  window.setTimeout(() => {
-    void resolveNow();
-  }, 0);
-});
-
-urlInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    window.clearTimeout(debounceTimer);
-    void resolveNow();
-  }
-});
-
-downloadBtn.addEventListener("click", () => {
-  void startDownload();
-});
-
-void onProgress((payload) => {
-  if (downloadJob === 0) {
-    return;
-  }
-  applyProgress(payload.phase, payload.percent, payload.message);
-});
-
-resetButton();
-renderQuality();
-void downloadDirInfo()
-  .then((info) => setFolderName(info.name))
-  .catch(() => setFolderName("Downloads"));

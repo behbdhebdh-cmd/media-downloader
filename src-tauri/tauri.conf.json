@@ -13,17 +13,22 @@
     "withGlobalTauri": false,
     "windows": [
       {
+        "label": "main",
         "title": "MediaDownloader",
         "width": 640,
-        "height": 560,
+        "height": 580,
+        "minWidth": 480,
+        "minHeight": 520,
         "resizable": true,
         "center": true,
+        "visible": true,
+        "focus": true,
         "theme": "Dark",
         "backgroundColor": "#0B0910"
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: data:; style-src 'self' 'unsafe-inline'; script-src 'self'"
+      "csp": "default-src 'self'; img-src 'self' asset: data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'"
     }
   },
   "bundle": {
